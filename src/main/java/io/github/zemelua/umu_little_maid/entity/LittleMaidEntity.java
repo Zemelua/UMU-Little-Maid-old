@@ -8,13 +8,17 @@ import io.github.zemelua.umu_little_maid.entity.maid.job.MaidJob;
 import io.github.zemelua.umu_little_maid.entity.maid.job.MaidJobs;
 import io.github.zemelua.umu_little_maid.entity.maid.personality.MaidPersonalities;
 import io.github.zemelua.umu_little_maid.entity.maid.personality.MaidPersonality;
+import io.github.zemelua.umu_little_maid.inventory.LittleMaidContainer;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -26,6 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.fmllegacy.network.NetworkHooks;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 
@@ -35,7 +40,8 @@ import java.util.UUID;
 
 public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 	public static final double FOLLOW_START_DISTANCE = 10.0F;
-	private static final int MAX_INTIMACY = 300;
+	public static final int MAX_INTIMACY = 300;
+	public static final EquipmentSlot[] ARMORS = new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.FEET};
 
 	private static final EntityDataAccessor<Boolean> DATA_TAME = SynchedEntityData.defineId(LittleMaidEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> DATA_SITTING = SynchedEntityData.defineId(LittleMaidEntity.class, EntityDataSerializers.BOOLEAN);
@@ -43,8 +49,6 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 
 	private final MaidPersonality personality;
 	private final IItemHandler inventory;
-	private final IItemHandler armors;
-	private final IItemHandler held;
 
 	private MaidJob job;
 	private boolean orderedToSit = false;
@@ -55,8 +59,6 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 
 		this.personality = MaidPersonalities.BRAVERY;
 		this.inventory = new ItemStackHandler(15);
-		this.armors = new ItemStackHandler(2);
-		this.held = new ItemStackHandler(1);
 
 		this.job = MaidJobs.NONE;
 	}
@@ -106,7 +108,14 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 
 		if (this.isTame()) {
 			if (player.isCrouching()) {
-				// TODO: open inventory
+				if (!this.level.isClientSide()) {
+					if (player instanceof ServerPlayer playerServer) {
+						NetworkHooks.openGui(playerServer, new SimpleMenuProvider((id, inventory, playerArg)
+								-> new LittleMaidContainer(id, inventory, this), new TranslatableComponent("tex")),
+								buffer -> buffer.writeVarInt(this.getId())
+						);
+					}
+				}
 			} else {
 				if (player == this.getOwner() && !defaultResult.consumesAction()) {
 					if (!this.level.isClientSide()) {
@@ -218,8 +227,8 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 		return this.personality;
 	}
 
-	public ItemStack getHeldItem() {
-		return this.held.getStackInSlot(0);
+	public IItemHandler getInventory() {
+		return this.inventory;
 	}
 
 	public MaidJob getJob() {

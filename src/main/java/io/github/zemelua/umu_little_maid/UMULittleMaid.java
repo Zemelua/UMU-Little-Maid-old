@@ -1,7 +1,9 @@
 package io.github.zemelua.umu_little_maid;
 
 import io.github.zemelua.umu_little_maid.client.ClientHandler;
+import io.github.zemelua.umu_little_maid.client.screen.ModScreens;
 import io.github.zemelua.umu_little_maid.entity.ModEntities;
+import io.github.zemelua.umu_little_maid.inventory.ModContainers;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -23,6 +25,8 @@ public class UMULittleMaid {
 		IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
 
 		ModEntities.initialize(forgeBus, modBus);
+		ModContainers.initialize(forgeBus, modBus);
+		ModScreens.initialize(forgeBus, modBus);
 
 		ClientHandler clientHandler = new ClientHandler(forgeBus, modBus);
 		clientHandler.initialize();
