@@ -1,7 +1,5 @@
 package io.github.zemelua.umu_little_maid.inventory.slot;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import io.github.zemelua.umu_little_maid.client.screen.LittleMaidScreen;
 import io.github.zemelua.umu_little_maid.entity.LittleMaidEntity;
@@ -17,17 +15,13 @@ import net.minecraftforge.items.SlotItemHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Iterator;
 
 public class MaidArmorSlot extends SlotItemHandler {
 	private final EquipmentSlot slot;
 	private final LittleMaidEntity maid;
 
-	public MaidArmorSlot(EquipmentSlot slot, LittleMaidEntity maid, Iterator<ItemStack> items, int index, int xPosition, int yPosition) {
-		super(new ItemStackHandler(NonNullList.of(ItemStack.EMPTY,
-				Lists.newArrayList(items).toArray(new ItemStack[Iterators.size(items)]))),
-				index, xPosition, yPosition
-		);
+	public MaidArmorSlot(EquipmentSlot slot, LittleMaidEntity maid, int xPosition, int yPosition) {
+		super(new ItemStackHandler(NonNullList.of(ItemStack.EMPTY, maid.getItemBySlot(slot))), 0, xPosition, yPosition);
 
 		this.slot = slot;
 		this.maid = maid;

@@ -24,7 +24,7 @@ public final class ModEntities {
 	private static boolean initialized;
 
 	public static void initialize(IEventBus forgeBus, IEventBus modBus) {
-		if (initialized) throw new IllegalStateException("Entities already initialized!");
+		if (initialized) throw new IllegalStateException("Entities is already initialized!");
 
 		REGISTRY.register(modBus);
 		modBus.addListener(ModEntities::onEntityAttributeCreation);

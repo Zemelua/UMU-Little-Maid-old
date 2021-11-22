@@ -4,7 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.zemelua.umu_little_maid.UMULittleMaid;
 import io.github.zemelua.umu_little_maid.entity.LittleMaidEntity;
-import io.github.zemelua.umu_little_maid.inventory.LittleMaidContainer;
+import io.github.zemelua.umu_little_maid.inventory.MaidContainer;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.GameRenderer;
@@ -14,7 +14,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraftforge.items.IItemHandler;
 
-public class LittleMaidScreen extends AbstractContainerScreen<LittleMaidContainer> {
+public class LittleMaidScreen extends AbstractContainerScreen<MaidContainer> {
 	private static final ResourceLocation MAID_SCREEN_TEXTURE = UMULittleMaid.location("textures/gui/little_maid.png");
 	public static final ResourceLocation EMPTY_HELD_SLOT_TEXTURE = UMULittleMaid.location("gui/empty_held_item_slot");
 	public static final ResourceLocation[] EMPTY_ARMOR_SLOT_TEXTURES = new ResourceLocation[]{
@@ -22,7 +22,7 @@ public class LittleMaidScreen extends AbstractContainerScreen<LittleMaidContaine
 			InventoryMenu.EMPTY_ARMOR_SLOT_CHESTPLATE, UMULittleMaid.location("gui/empty_armor_slot_helmet")
 	};
 
-	public LittleMaidScreen(LittleMaidContainer container, Inventory playerInventory, Component title) {
+	public LittleMaidScreen(MaidContainer container, Inventory playerInventory, Component title) {
 		super(container, playerInventory, title);
 	}
 
@@ -45,6 +45,6 @@ public class LittleMaidScreen extends AbstractContainerScreen<LittleMaidContaine
 			}
 		}
 
-		InventoryScreen.renderEntityInInventory(centerX + 51, centerY + 60, 30, centerX + 51 - mouseX, centerY + 25 - mouseY, maid);
+		InventoryScreen.renderEntityInInventory(centerX + 51, centerY + 65, 25, centerX + 51 - mouseX, centerY + 25 - mouseY, maid);
 	}
 }

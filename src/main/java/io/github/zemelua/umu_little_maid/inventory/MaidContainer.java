@@ -4,33 +4,34 @@ import io.github.zemelua.umu_little_maid.entity.LittleMaidEntity;
 import io.github.zemelua.umu_little_maid.inventory.slot.MaidArmorSlot;
 import io.github.zemelua.umu_little_maid.inventory.slot.MaidHeldItemSlot;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerListener;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
-public class LittleMaidContainer extends AbstractContainerMenu {
+public class MaidContainer extends AbstractContainerMenu {
 	private final LittleMaidEntity maid;
 
 	@SuppressWarnings("ConstantConditions")
-	protected LittleMaidContainer(int id, Inventory playerInventory, FriendlyByteBuf buffer) {
+	protected MaidContainer(int id, Inventory playerInventory, FriendlyByteBuf buffer) {
 		this(id, playerInventory, (LittleMaidEntity) playerInventory.player.level.getEntity(buffer.readVarInt()));
 	}
 
-	public LittleMaidContainer(int id, Inventory playerInventory, LittleMaidEntity maid) {
+	public MaidContainer(int id, Inventory playerInventory, LittleMaidEntity maid) {
 		super(ModContainers.LITTLE_MAID.get(), id);
 
 		this.maid = maid;
 
-		this.addSlot(new MaidHeldItemSlot(this.maid.getInventory(), 0, 8, 18));
+		this.addSlot(new MaidHeldItemSlot(this.maid.getMainHandItem(), 0, 8, 18));
 
 		for (int i = 0; i < LittleMaidEntity.ARMORS.length; i++) {
-			this.addSlot(new MaidArmorSlot(
-					LittleMaidEntity.ARMORS[i], this.maid, this.maid.getArmorSlots().iterator(),
-					LittleMaidEntity.ARMORS[i].getIndex(), 8, 36 + i * 18)
-			);
+			this.addSlot(new MaidArmorSlot(LittleMaidEntity.ARMORS[i], this.maid, 8, 36 + i * 18));
 		}
 
 		IItemHandler maidInventory = this.maid.getInventory();
@@ -50,6 +51,8 @@ public class LittleMaidContainer extends AbstractContainerMenu {
 		for (int i = 0; i < 9; i++) {
 			this.addSlot(new Slot(playerInventory, i, 8 + i * 18, 142));
 		}
+
+		this.addSlotListener(this.new MaidContainerListener());
 	}
 
 	@Override
@@ -59,5 +62,20 @@ public class LittleMaidContainer extends AbstractContainerMenu {
 
 	public LittleMaidEntity getMaid() {
 		return this.maid;
+	}
+
+	private class MaidContainerListener implements ContainerListener {
+		@Override
+		public void slotChanged(AbstractContainerMenu container, int slot, ItemStack itemStack) {
+			LittleMaidEntity maid = MaidContainer.this.maid;
+
+			if (slot == 0) maid.setItemInHand(InteractionHand.MAIN_HAND, itemStack);
+			else if (slot == 1) maid.setItemSlot(EquipmentSlot.HEAD, itemStack);
+			else if (slot == 2) maid.setItemSlot(EquipmentSlot.FEET, itemStack);
+		}
+
+		@Override
+		public void dataChanged(AbstractContainerMenu container, int slot, int int0) {
+		}
 	}
 }

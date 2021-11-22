@@ -11,8 +11,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class ModContainers {
 	private static final DeferredRegister<MenuType<?>> REGISTRY = UMULittleMaid.registry(ForgeRegistries.CONTAINERS);
 
-	public static final RegistryObject<MenuType<LittleMaidContainer>> LITTLE_MAID = REGISTRY.register("secret_pocket_in_the_skirt", ()
-			-> IForgeContainerType.create(LittleMaidContainer::new)
+	public static final RegistryObject<MenuType<MaidContainer>> LITTLE_MAID = REGISTRY.register("secret_pocket_in_the_skirt", ()
+			-> IForgeContainerType.create(MaidContainer::new)
 	);
 
 	private ModContainers() {

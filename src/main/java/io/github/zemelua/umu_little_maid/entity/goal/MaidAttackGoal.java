@@ -10,8 +10,8 @@ public class MaidAttackGoal extends MeleeAttackGoal {
 
 	@Override
 	public boolean canUse() {
-		if (this.mob instanceof LittleMaidEntity modMaid) {
-			return (modMaid.getJob().isActive() || modMaid.getJob().isMad()) && super.canUse();
+		if (this.mob instanceof LittleMaidEntity mobMaid) {
+			return (mobMaid.getJob().isActive() || mobMaid.getJob().isMad()) && super.canUse();
 		}
 
 		return false;

@@ -2,16 +2,18 @@ package io.github.zemelua.umu_little_maid.inventory.slot;
 
 import com.mojang.datafixers.util.Pair;
 import io.github.zemelua.umu_little_maid.client.screen.LittleMaidScreen;
+import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraftforge.items.IItemHandler;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
 import javax.annotation.Nullable;
 
 public class MaidHeldItemSlot extends SlotItemHandler {
-	public MaidHeldItemSlot(IItemHandler itemHandler, int index, int xPosition, int yPosition) {
-		super(itemHandler, index, xPosition, yPosition);
+	public MaidHeldItemSlot(ItemStack heldItem, int index, int xPosition, int yPosition) {
+		super(new ItemStackHandler(NonNullList.of(ItemStack.EMPTY, heldItem)), index, xPosition, yPosition);
 	}
 
 	@Nullable

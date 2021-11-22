@@ -4,18 +4,22 @@ import io.github.zemelua.umu_little_maid.entity.goal.MaidAttackGoal;
 import io.github.zemelua.umu_little_maid.entity.goal.MaidAvoidGoal;
 import io.github.zemelua.umu_little_maid.entity.goal.MaidLeapGoal;
 import io.github.zemelua.umu_little_maid.entity.goal.MaidSittingGoal;
+import io.github.zemelua.umu_little_maid.entity.goal.target.MaidOwnerHurtByTargetGoal;
 import io.github.zemelua.umu_little_maid.entity.maid.job.MaidJob;
 import io.github.zemelua.umu_little_maid.entity.maid.job.MaidJobs;
 import io.github.zemelua.umu_little_maid.entity.maid.personality.MaidPersonalities;
 import io.github.zemelua.umu_little_maid.entity.maid.personality.MaidPersonality;
-import io.github.zemelua.umu_little_maid.inventory.LittleMaidContainer;
+import io.github.zemelua.umu_little_maid.inventory.MaidContainer;
+import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
@@ -26,6 +30,7 @@ import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -43,11 +48,11 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 	public static final int MAX_INTIMACY = 300;
 	public static final EquipmentSlot[] ARMORS = new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.FEET};
 
+	private static final EntityDataAccessor<Integer> DATA_PERSONALITY = SynchedEntityData.defineId(LittleMaidEntity.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Boolean> DATA_TAME = SynchedEntityData.defineId(LittleMaidEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> DATA_SITTING = SynchedEntityData.defineId(LittleMaidEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Optional<UUID>> DATA_OWNER = SynchedEntityData.defineId(LittleMaidEntity.class, EntityDataSerializers.OPTIONAL_UUID);
 
-	private final MaidPersonality personality;
 	private final IItemHandler inventory;
 
 	private MaidJob job;
@@ -57,7 +62,6 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 	public LittleMaidEntity(EntityType<LittleMaidEntity> type, Level world) {
 		super(type, world);
 
-		this.personality = MaidPersonalities.BRAVERY;
 		this.inventory = new ItemStackHandler(15);
 
 		this.job = MaidJobs.NONE;
@@ -67,6 +71,7 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 	protected void defineSynchedData() {
 		super.defineSynchedData();
 
+		this.entityData.define(DATA_PERSONALITY, 0);
 		this.entityData.define(DATA_TAME, false);
 		this.entityData.define(DATA_SITTING, false);
 		this.entityData.define(DATA_OWNER, Optional.empty());
@@ -84,6 +89,9 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 		this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Player.class, 8.0F));
 		this.goalSelector.addGoal(10, new RandomLookAroundGoal(this));
 
+		this.targetSelector.addGoal(1, new MaidOwnerHurtByTargetGoal(this));
+		this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
+
 		super.registerGoals();
 	}
 
@@ -95,10 +103,7 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 	public void tick() {
 		super.tick();
 
-		if (!this.level.isClientSide) {
-//			UMULittleMaid.LOGGER.info("orderedSit : " + this.isOrderedToSit());
-//			UMULittleMaid.LOGGER.info("sitting : " + this.isSitting());
-		}
+		this.setJob(MaidJobs.getByItem(this.getMainHandItem()));
 	}
 
 	@Override
@@ -111,7 +116,7 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 				if (!this.level.isClientSide()) {
 					if (player instanceof ServerPlayer playerServer) {
 						NetworkHooks.openGui(playerServer, new SimpleMenuProvider((id, inventory, playerArg)
-								-> new LittleMaidContainer(id, inventory, this), new TranslatableComponent("tex")),
+								-> new MaidContainer(id, inventory, this), new TranslatableComponent("tex")),
 								buffer -> buffer.writeVarInt(this.getId())
 						);
 					}
@@ -119,6 +124,8 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 			} else {
 				if (player == this.getOwner() && !defaultResult.consumesAction()) {
 					if (!this.level.isClientSide()) {
+						this.navigation.stop();
+						this.setTarget(null);
 						this.setOrderedToSit(!this.isOrderedToSit());
 					}
 
@@ -179,6 +186,47 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 		}
 	}
 
+	@Override
+	public void addAdditionalSaveData(CompoundTag tag) {
+		super.addAdditionalSaveData(tag);
+
+		tag.putInt("personality", this.getPersonalityID());
+		tag.putBoolean("isTame", this.isTame());
+		tag.putBoolean("isSitting", this.isSitting());
+		if (this.getOwnerUUID() != null) {
+			tag.putUUID("owner", this.getOwnerUUID());
+		}
+		ContainerHelper.saveAllItems(tag, this.getInventoryList());
+	}
+
+	@Override
+	public void readAdditionalSaveData(CompoundTag tag) {
+		super.readAdditionalSaveData(tag);
+
+		this.setPersonalityID(tag.getInt("personality"));
+		this.setTame(tag.getBoolean("isTame"));
+		this.setSitting(tag.getBoolean("isSitting"));
+		if (tag.contains("owner")) {
+			this.setOwnerUUID(tag.getUUID("owner"));
+		}
+		NonNullList<ItemStack> inventoryList = NonNullList.of(ItemStack.EMPTY);
+		ContainerHelper.loadAllItems(tag, inventoryList);
+		this.setInventoryList(inventoryList);
+
+	}
+
+	public int getPersonalityID() {
+		return this.entityData.get(DATA_PERSONALITY);
+	}
+
+	public void setPersonalityID(int personalityID) {
+		this.entityData.set(DATA_PERSONALITY, personalityID);
+	}
+
+	public MaidPersonality getPersonality() {
+		return MaidPersonalities.getByID(this.getPersonalityID());
+	}
+
 	public boolean isTame() {
 		return this.entityData.get(DATA_TAME);
 	}
@@ -223,12 +271,28 @@ public class LittleMaidEntity extends PathfinderMob implements OwnableEntity {
 		}
 	}
 
-	public MaidPersonality getPersonality() {
-		return this.personality;
-	}
-
 	public IItemHandler getInventory() {
 		return this.inventory;
+	}
+
+	public NonNullList<ItemStack> getInventoryList() {
+		IItemHandler inventory = this.getInventory();
+		NonNullList<ItemStack> inventoryList = NonNullList.withSize(inventory.getSlots(), ItemStack.EMPTY);
+
+		for (int i = 0; i < inventory.getSlots(); i++) {
+			inventoryList.set(i, inventory.getStackInSlot(i));
+		}
+
+		return inventoryList;
+	}
+
+	public void setInventoryList(NonNullList<ItemStack> inventoryList) {
+		IItemHandler inventory = this.getInventory();
+		if (!(inventory instanceof ItemStackHandler inventoryHandler)) return;
+
+		for (int i = 0; i < inventoryList.size(); i++) {
+			inventoryHandler.setStackInSlot(i, inventoryList.get(i));
+		}
 	}
 
 	public MaidJob getJob() {
